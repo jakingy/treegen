@@ -8,7 +8,7 @@ class Tree:
         self.child = []
 
     def add_subtree(self, subtree):
-        if subtree is not None:
+        if isinstance(subtree, Tree):
             self.child.append(subtree)
 
 #tree types
@@ -36,13 +36,13 @@ def half_fishbone(cnt): # spikey, but spikes can be > length 1, TODO: maybe make
     l = line(split)
     nodes = get_nodes(l)
     parts = random_partition(cnt-split, split)
-    for i in range(cnt-split):
+    for i in range(split):
         t = nodes[i].add_subtree(line(parts[i]))
     return l
 
 def spikey(cnt): # caterpillar limited to a single leg
     if cnt < 1: return
-    split = random.randint(cnt/2 + 1, cnt)
+    split = random.randint(cnt//2 + 1, cnt)
     l = line(split)
     nodes = get_nodes(l)
     random.shuffle(nodes)
@@ -50,7 +50,7 @@ def spikey(cnt): # caterpillar limited to a single leg
         nodes.pop().add_subtree(Tree())
     return l
 
-def random_binary_tree(cnt, single_chance = 0.3):
+def random_binary_tree(cnt, single_chance = 0.3): # watch for stack overflow
     if cnt < 1:return
     cnt -= 1
     tree = Tree()
@@ -71,11 +71,12 @@ def star(cnt): # balanced tree of degree cnt-1
 
 def starlike(cnt):
     if cnt < 1:return
+    if cnt == 1: return Tree()
     cnt -= 1
     tree = Tree()
     child_cnt = random.randint(1, cnt)
     parts = random_partition(cnt, child_cnt)
-    tree.child = [line(p) for p in parts]
+    tree.child = list(filter(None, [line(p) for p in parts]))
     return tree
 
 def double_star(cnt):
@@ -259,7 +260,6 @@ def descending_ids(mn, mx):
     ids = list(range(mn, mx))
     ids.reverse()
     return ids 
-
 
 TREE_TYPES = [line, caterpillar, random_binary_tree, star, double_star, tri_tree, balanced_n_tree, random_tree, random_typed_tree, mixed_tree, half_fishbone, spikey, starlike]
 ID_TYPES = [random_ids, ascending_ids, descending_ids]
