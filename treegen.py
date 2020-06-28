@@ -12,7 +12,7 @@ class Tree:
             self.child.append(subtree)
 
 #tree types
-def line(cnt): # could be reduced to balanced tree of degree 1
+def line(cnt):
     if cnt < 1: return
     tree = Tree()
     parent = tree
@@ -21,13 +21,33 @@ def line(cnt): # could be reduced to balanced tree of degree 1
         parent = parent.child[0]
     return tree
 
-def caterpillar(cnt):
+def caterpillar(cnt): # a line with single node 'legs' sticking out TODO: maybe make a max_legs parameter
     if cnt < 1: return
     split = random.randint(1, cnt)
     l = line(split)
     nodes = get_nodes(l)
     for i in range(cnt-split):
         random.choice(nodes).add_subtree(Tree())
+    return l
+
+def half_fishbone(cnt): # spikey, but spikes can be > length 1, TODO: maybe make a fishbone with max_spikes parameter (max_spikes = 1 is half_fishbone)
+    if cnt < 1: return
+    split = random.randint(1, cnt)
+    l = line(split)
+    nodes = get_nodes(l)
+    parts = random_partition(cnt-split, split)
+    for i in range(cnt-split):
+        t = nodes[i].add_subtree(line(parts[i]))
+    return l
+
+def spikey(cnt): # caterpillar limited to a single leg
+    if cnt < 1: return
+    split = random.randint(cnt/2 + 1, cnt)
+    l = line(split)
+    nodes = get_nodes(l)
+    random.shuffle(nodes)
+    for i in range(cnt-split):
+        nodes.pop().add_subtree(Tree())
     return l
 
 def random_binary_tree(cnt, single_chance = 0.3):
@@ -42,11 +62,20 @@ def random_binary_tree(cnt, single_chance = 0.3):
     tree.add_subtree(random_binary_tree(cnt-split, single_chance))
     return tree
 
-def star(cnt): # could be reduce to balanced tree of degree cnt-1
+def star(cnt): # balanced tree of degree cnt-1
     if cnt < 1:return
     tree = Tree()
     for i in range(cnt-1):
         tree.add_subtree(Tree())
+    return tree
+
+def starlike(cnt):
+    if cnt < 1:return
+    cnt -= 1
+    tree = Tree()
+    child_cnt = random.randint(1, cnt)
+    parts = random_partition(cnt, child_cnt)
+    tree.child = [line(p) for p in parts]
     return tree
 
 def double_star(cnt):
@@ -160,7 +189,30 @@ def tree_from_prufer(prufer):
     edges[b].append(a)
     return tree_from_adjacency_list(0,-1,edges)
 
-def random_partition(cnt, n):
+
+def capped_random_partition(cnt, n, cap): # O(cnt) whp, slow
+    if cap * n < cnt:
+        raise Exception("Impossible to partition %d into %d groups of at most %d." % (cnt,n,cap))
+
+    if cnt > n*cap/2:
+        split = [cap]*n
+        sm = cap*n
+        while sm > cnt:
+            i = random.randrange(0,n)
+            if split[i] > 0:
+                split[i] -= 1
+                sm -= 1
+    else:
+        split = [0]*n
+        sm = 0
+        while sm < cnt:
+            i = random.randrange(0,n)
+            if split[i] < cap:
+                split[i] += 1
+                sm += 1
+    return split
+
+def random_partition(cnt, n): # O(n)
     density = [random.uniform(0.0, 1.0)for i in range(n)]
     mul = cnt/sum(density)
 
@@ -168,9 +220,9 @@ def random_partition(cnt, n):
     delta = sum(split)-cnt
 
     if delta > 0:
-        nonzeroes = [i for i,v in enumerate(split) if v > 0]
+        nonzeroes = set(i for i,v in enumerate(split) if v > 0)
         while delta > 0:
-            idx = random.choice(nonzeroes)
+            idx = random.sample(nonzeroes, 1)
             if split[idx] > 0:
                 split[idx] -= 1
                 delta -= 1
@@ -209,5 +261,5 @@ def descending_ids(mn, mx):
     return ids 
 
 
-TREE_TYPES = [line, caterpillar, random_binary_tree, star, double_star, tri_tree, balanced_n_tree, random_tree, random_typed_tree, mixed_tree]
+TREE_TYPES = [line, caterpillar, random_binary_tree, star, double_star, tri_tree, balanced_n_tree, random_tree, random_typed_tree, mixed_tree, half_fishbone, spikey, starlike]
 ID_TYPES = [random_ids, ascending_ids, descending_ids]
